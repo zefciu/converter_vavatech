@@ -1,46 +1,62 @@
 import argparse
 import csv
 import json
+import pickle
 
 
-# 1. Wczytać dane z csv
-# 2. Przekonwertować dane na listę
-# 3. Zapisać w formacie JSON
-
-class JsonFormat:
-
-    def __init__(self, **kwars):
-        pass
-
-    def parse(self, fileName):
-        with open(fileName, 'r') as fRead:
-            return json.load(fRead)
-
-    def output(self, lTab, fileName):
-        with open(fileName, 'w') as fWrite:
-            json.dump(lTab, fWrite)
-
-
-class CsvFormat:
-
-    def __init__(self, **kwars):
-        pass
-
+class OpenFileFormat:
     def parse(self, filename):
-        with open(filename, 'r') as fRead:
-            reader = csv.DictReader(fRead)
-            return list(reader)
+        if self.binary:
+            mode = 'rb'
+        else:
+            mode = 'r'
+        with open(filename, mode) as f:
+            return self.parse_file(f)
 
-    def output(self, lTab, filename):
-        with open(filename, 'w') as fWrite:
-            writer = csv.DictWriter(fWrite, fieldnames=lTab[0].keys())
-            writer.writeheader()
-            writer.writerows(lTab)
+    def output(self, data, filename):
+        if self.binary:
+            mode = 'wb'
+        else:
+            mode = 'w'
+        with open(filename, mode) as f:
+            return self.output_file(data, f)
+
+
+class DumpLoadFormat(OpenFileFormat):
+    def parse_file(self, f):
+        return self.mod.load(f)
+
+    def output_file(self, data, f):
+        self.mod.dump(data, f)
+
+
+class PickleFormat(DumpLoadFormat):
+    mod = pickle
+    binary = True
+
+
+class JsonFormat(DumpLoadFormat):
+    mod = json
+    binary = False
+
+
+class CsvFormat(OpenFileFormat):
+    binary = False
+
+    def parse_file(self, f):
+        reader = csv.DictReader(f)
+        return list(reader)
+
+    def output_file(self, lTab, f):
+        writer = csv.DictWriter(f, fieldnames=lTab[0].keys())
+        writer.writeheader()
+        writer.writerows(lTab)
 
 
 FORMATS = {
     'json': JsonFormat,
     'csv': CsvFormat,
+    'pickle': PickleFormat,
 }
 
 if __name__ == '__main__':
@@ -62,7 +78,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     inputFormat = args.input_format
     outputFormat = args.output_format
-    
+
     data_parser = FORMATS[inputFormat]()
     formatter = FORMATS[outputFormat]()
     parsedValue = data_parser.parse(args.infile)
