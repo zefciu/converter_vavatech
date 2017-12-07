@@ -2,6 +2,7 @@ import argparse
 import csv
 import json
 import pickle
+import sqlite3
 
 
 class OpenFileFormat:
@@ -28,6 +29,31 @@ class DumpLoadFormat(OpenFileFormat):
 
     def output_file(self, data, f):
         self.mod.dump(data, f)
+
+
+class SqliteFormat:
+    def parse(self, f):
+        raise NotImplementedError
+
+    def output(self, data, f):
+        c = sqlite3.connect(f)
+        colName=data[0].keys()
+        colNames=",".join(colName)
+        cur = c.cursor()
+        cur.execute('DROP TABLE IF EXISTS data')
+        cur.execute('CREATE TABLE data (' + colNames +');')
+        exl_marks = ",".join(['?']*len(colName))
+        for i in data:
+            stmt = (
+                'INSERT INTO data (' +
+                colNames +
+                ') VALUES (' +
+                exl_marks +
+                ');'
+            )
+            cur.execute(stmt, tuple(i.values()))
+        c.commit()
+        c.close()
 
 
 class PickleFormat(DumpLoadFormat):
@@ -57,6 +83,7 @@ FORMATS = {
     'json': JsonFormat,
     'csv': CsvFormat,
     'pickle': PickleFormat,
+    'sqlite': SqliteFormat,
 }
 
 if __name__ == '__main__':
