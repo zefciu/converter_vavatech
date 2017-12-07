@@ -86,7 +86,7 @@ FORMATS = {
     'sqlite': SqliteFormat,
 }
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(
         description='Converts between dataformats'
     )
@@ -112,3 +112,6 @@ if __name__ == '__main__':
     if len(parsedValue) == 0:
         parser.error('Conversion of empty data not supported')
     formatter.output(parsedValue, args.outfile)
+
+if __name__ == '__main__':
+    main()
